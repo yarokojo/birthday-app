@@ -119,7 +119,6 @@ export default function VideoScreen({ reels = [], userProfileImage, onBack, onNa
 
   return (
     <View style={styles.container}>
-      {/* Progress Bar - Top */}
       <View style={styles.progressBarContainer}>
         {reels.map((_, idx) => (
           <View key={idx} style={styles.progressBarBg}>
@@ -178,7 +177,6 @@ export default function VideoScreen({ reels = [], userProfileImage, onBack, onNa
               )}
             </AnimatePresence>
 
-            {/* Top Bar */}
             <View style={styles.topBar}>
               <View style={styles.topBarLeft}>
                 {onBack && (
@@ -208,7 +206,6 @@ export default function VideoScreen({ reels = [], userProfileImage, onBack, onNa
               </View>
             </View>
 
-            {/* Right Sidebar */}
             <View style={styles.sidebar}>
               <TouchableOpacity 
                 activeOpacity={0.8}
@@ -290,7 +287,6 @@ export default function VideoScreen({ reels = [], userProfileImage, onBack, onNa
               </TouchableOpacity>
             </View>
 
-            {/* Wishes Container */}
             <View style={styles.wishesContainer}>
               <AnimatePresence>
                 {wishes.map((wish) => (
@@ -310,7 +306,6 @@ export default function VideoScreen({ reels = [], userProfileImage, onBack, onNa
               </AnimatePresence>
             </View>
 
-            {/* Bottom Info */}
             <View style={styles.bottomInfo}>
               <View style={styles.authorRow}>
                 <Text style={styles.authorHandle}>{video.handle}</Text>
@@ -333,7 +328,6 @@ export default function VideoScreen({ reels = [], userProfileImage, onBack, onNa
               </View>
             </View>
 
-            {/* Album Disk */}
             <MotiView 
               animate={{ rotate: '360deg' }}
               transition={{ loop: true, type: 'timing', duration: 4000 }}
@@ -345,7 +339,6 @@ export default function VideoScreen({ reels = [], userProfileImage, onBack, onNa
         ))}
       </ScrollView>
 
-      {/* Comments Modal - Fixed to not overlap */}
       <AnimatePresence>
         {showComments && (
           <View style={styles.modalOverlay}>
@@ -396,7 +389,6 @@ export default function VideoScreen({ reels = [], userProfileImage, onBack, onNa
         )}
       </AnimatePresence>
 
-      {/* Share Modal */}
       <AnimatePresence>
         {showShare && (
           <View style={styles.modalOverlay}>
@@ -435,7 +427,6 @@ export default function VideoScreen({ reels = [], userProfileImage, onBack, onNa
         )}
       </AnimatePresence>
 
-      {/* Confetti */}
       <AnimatePresence>
         {showConfetti && (
           <View style={styles.confettiLayer} pointerEvents="none">
