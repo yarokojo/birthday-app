@@ -10,77 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
-
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
       - name: Install dependencies
         run: npm install --legacy-peer-deps
-
-      - name: Prebuild Android
-        run: npx expo prebuild --platform android --clean
-
-      - name: Fix Gradle and Kotlin versions
-        run: |
-          # Force Gradle 8.5
-          mkdir -p android/gradle/wrapper
-          cat > android/gradle/wrapper/gradle-wrapper.properties << 'WRAPPER'
-          distributionBase=GRADLE_USER_HOME
-          distributionPath=wrapper/dists
-          distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-all.zip
-          zipStoreBase=GRADLE_USER_HOME
-          zipStorePath=wrapper/dists
-          WRAPPER
-
-          # Override root build.gradle with Kotlin 1.9.24
-          cat > android/build.gradle << 'BUILD'
-          buildscript {
-              ext {
-                  buildToolsVersion = "34.0.0"
-                  minSdkVersion = 23
-                  compileSdkVersion = 34
-                  targetSdkVersion = 34
-                  ndkVersion = "25.1.8937393"
-                  kotlinVersion = "1.9.24"
-              }
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:7.4.2'
-                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-              }
-          }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          BUILD
-
-          # Create gradle.properties to enforce Kotlin version
-          cat > android/gradle.properties << 'PROPS'
-          org.gradle.jvmargs=-Xmx2048m
-          android.useAndroidX=true
-          kotlin.version=1.9.24
-          PROPS
-
       - name: Build APK
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
-
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
