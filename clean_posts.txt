@@ -1,0 +1,4 @@
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [reels, setReels] = useState<ReelItem[]>([]);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [celebrants, setCelebrants] = useState<Celebrant[]>([]);

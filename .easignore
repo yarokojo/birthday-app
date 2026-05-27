@@ -1,0 +1,46 @@
+# Termux SDK and build tools (these are the main culprits)
+android-sdk/
+commandlinetools-linux-*.zip
+.gradle/
+.gradle/
+android/
+ios/
+
+# Dependencies
+node_modules/
+
+# Build artifacts
+.expo/
+.eas/
+.git/
+.DS_Store
+
+# Environment and logs
+.env
+*.log
+*.backup
+*.bak
+*.sh
+*.txt
+
+# Temporary files
+archive-inspection/
+storage/
+__pycache__/
+*.md
+
+# IDE files
+.vscode/
+.idea/
+
+# Media files (if any large ones)
+*.mp4
+*.mov
+*.avi
+*.mp3
+*.wav
+
+# Documentation
+docs/
+README.md
+LICENSE

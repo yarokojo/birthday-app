@@ -1,0 +1,777 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import "react-native-gesture-handler";
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, SafeAreaView, Platform, Text, TouchableOpacity, useWindowDimensions, KeyboardAvoidingView, ActivityIndicator, Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import Header from "./src/components/Header";
+import BottomNav from "./src/components/BottomNav";
+import HomeScreen from "./src/screens/HomeScreen";
+import CalendarScreen from "./src/screens/CalendarScreen";
+import VideoScreen from "./src/screens/VideoScreen";
+import PostScreen from "./src/screens/PostScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
+import GiftShopScreen from "./src/screens/GiftShopScreen";
+import WalletScreen from "./src/screens/WalletScreen";
+import NotificationScreen from "./src/screens/NotificationScreen";
+import GroupGiftScreen from "./src/screens/GroupGiftScreen";
+import PostDetailScreen from "./src/screens/PostDetailScreen";
+import WebViewScreen from "./src/screens/WebViewScreen";
+import PrivacyPolicyScreen from "./src/screens/PrivacyPolicyScreen";
+import TermsAndConditionsScreen from "./src/screens/TermsAndConditionsScreen";
+import AuthScreen from "./src/screens/AuthScreen";
+import FriendsScreen from "./src/screens/FriendsScreen";
+import PrivacySettingsScreen from "./src/screens/PrivacySettingsScreen";
+import BirthdayCalendarScreen from "./src/screens/BirthdayCalendarScreen";
+import SearchUsersScreen from "./src/screens/SearchUsersScreen";
+import { Post, Story, ReelItem, Transaction, GroupGift, ActivityItem, Celebrant, Friend, FriendRequest, PrivacySettings, DEFAULT_PRIVACY_SETTINGS } from "./src/types";
+import { ThemeProvider, useTheme } from "./src/context/ThemeContext";
+
+interface Notification {
+  id: string;
+  type: 'wish' | 'gift' | 'follow' | 'system';
+  user: string;
+  avatar: string;
+  message: string;
+  time: string;
+  isRead: boolean;
+}
+
+interface Birthday {
+  id: string;
+  userId: string;
+  name: string;
+  username: string;
+  avatar: string;
+  date: string;
+  daysLeft: number;
+  reminderSet: boolean;
+}
+
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("ErrorBoundary caught an error", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+          <Text style={{ fontSize: 24, fontWeight: '900', marginBottom: 12 }}>Something went wrong</Text>
+          <Text style={{ fontSize: 16, color: '#64748b', textAlign: 'center', marginBottom: 24 }}>The app encountered an unexpected error.</Text>
+          <TouchableOpacity 
+            onPress={() => Platform.OS === 'web' ? window.location.reload() : null}
+            style={{ backgroundColor: '#4f46e5', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '900' }}>RELOAD APP</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+function MainApp() {
+  const { darkMode, theme } = useTheme();
+  const { width } = useWindowDimensions();
+  const isLargeScreen = width > 1024;
+  const isTablet = width > 768 && width <= 1024;
+  
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeTab, setActiveTab] = useState("home");
+  const [view, setView] = useState<string | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
+  const [webViewUrl, setWebViewUrl] = useState<string | null>(null);
+  const [webViewTitle, setWebViewTitle] = useState<string | null>(null);
+  const [userProfileImage, setUserProfileImage] = useState("https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop");
+  const [postMode, setPostMode] = useState<'post' | 'video'>('post');
+  const [seenStoryIds, setSeenStoryIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentBalance, setCurrentBalance] = useState(0);
+  const [currentUserId, setCurrentUserId] = useState("current_user_1");
+  
+  // Friend system states
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([]);
+  const [privacySettings, setPrivacySettings] = useState<PrivacySettings>(DEFAULT_PRIVACY_SETTINGS);
+  const [birthdays, setBirthdays] = useState<Birthday[]>([]);
+  
+  // Empty initial states - no mock data
+  const [groupGifts, setGroupGifts] = useState<GroupGift[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [reels, setReels] = useState<ReelItem[]>([]);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [celebrants, setCelebrants] = useState<Celebrant[]>([]);
+  
+  const [userProfile, setUserProfile] = useState({
+    name: "Alex Johnson",
+    username: "@alex_bday_guru",
+    bio: "Turning celebrations into legendary memories. 🎂 Birthday Guru & Party Architect.",
+    location: "Manhattan, NY",
+    website: "alexcelebrates.com",
+    birthday: "1990-06-15",
+  });
+  
+  const [accountData, setAccountData] = useState({
+    email: "alex@example.com",
+    phone: "+1 234 567 890",
+    twoFactor: true,
+    securityScore: 85,
+    loginAlerts: true
+  });
+
+  // Friend handlers
+  const handleAcceptRequest = (requestId: string) => {
+    const request = friendRequests.find(r => r.id === requestId);
+    if (request) {
+      const newFriend: Friend = {
+        id: request.fromUserId,
+        userId: request.fromUserId,
+        name: request.fromUserName,
+        username: `@${request.fromUserName.toLowerCase().replace(/\s/g, '_')}`,
+        avatar: request.fromUserAvatar,
+        status: 'accepted',
+        since: new Date().toISOString(),
+      };
+      setFriends([...friends, newFriend]);
+      setFriendRequests(friendRequests.filter(r => r.id !== requestId));
+      
+      // Add to birthday calendar
+      const newBirthday: Birthday = {
+        id: request.fromUserId,
+        userId: request.fromUserId,
+        name: request.fromUserName,
+        username: `@${request.fromUserName.toLowerCase().replace(/\s/g, '_')}`,
+        avatar: request.fromUserAvatar,
+        date: "1990-01-01",
+        daysLeft: 0,
+        reminderSet: true,
+      };
+      setBirthdays([...birthdays, newBirthday]);
+      
+      Alert.alert("Friend Added", `You are now friends with ${request.fromUserName}`);
+    }
+  };
+
+  const handleRejectRequest = (requestId: string) => {
+    setFriendRequests(friendRequests.filter(r => r.id !== requestId));
+    Alert.alert("Request Rejected", "Friend request has been rejected");
+  };
+
+  const handleRemoveFriend = (friendId: string) => {
+    setFriends(friends.filter(f => f.id !== friendId));
+    setBirthdays(birthdays.filter(b => b.userId !== friendId));
+    Alert.alert("Friend Removed", "Friend has been removed");
+  };
+
+  const handleSendFriendRequest = (userId: string, userName: string) => {
+    const newRequest: FriendRequest = {
+      id: Date.now().toString(),
+      fromUserId: currentUserId,
+      fromUserName: userProfile.name,
+      fromUserAvatar: userProfileImage,
+      toUserId: userId,
+      timestamp: new Date().toISOString(),
+      status: 'pending',
+    };
+    setFriendRequests([newRequest, ...friendRequests]);
+    Alert.alert("Request Sent", `Friend request sent to ${userName}`);
+  };
+
+  const handleBlockUser = (userId: string) => {
+    setFriends(friends.filter(f => f.id !== userId));
+    setBirthdays(birthdays.filter(b => b.userId !== userId));
+    Alert.alert("User Blocked", "User has been blocked");
+  };
+
+  const handleToggleBirthdayReminder = (userId: string) => {
+    setBirthdays(birthdays.map(b => 
+      b.userId === userId ? { ...b, reminderSet: !b.reminderSet } : b
+    ));
+  };
+
+  const handleSendWish = (userId: string, name: string) => {
+    Alert.alert("Wish Sent", `Birthday wish sent to ${name}! 🎂`);
+  };
+
+  // Load data from AsyncStorage
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const storedAuth = await AsyncStorage.getItem("isAuthenticated");
+        const storedPosts = await AsyncStorage.getItem("posts");
+        const storedStories = await AsyncStorage.getItem("stories");
+        const storedReels = await AsyncStorage.getItem("reels");
+        const storedSeenStories = await AsyncStorage.getItem("seenStoryIds");
+        const storedProfileImage = await AsyncStorage.getItem("userProfileImage");
+        const storedBalance = await AsyncStorage.getItem("currentBalance");
+        const storedTransactions = await AsyncStorage.getItem("transactions");
+        const storedNotifications = await AsyncStorage.getItem("notifications");
+        const storedGroupGifts = await AsyncStorage.getItem("groupGifts");
+        const storedUserProfile = await AsyncStorage.getItem("userProfile");
+        const storedAccountData = await AsyncStorage.getItem("accountData");
+        const storedActivities = await AsyncStorage.getItem("activities");
+        const storedFriends = await AsyncStorage.getItem("friends");
+        const storedFriendRequests = await AsyncStorage.getItem("friendRequests");
+        const storedPrivacySettings = await AsyncStorage.getItem("privacySettings");
+        const storedBirthdays = await AsyncStorage.getItem("birthdays");
+
+        if (storedAuth) setIsAuthenticated(JSON.parse(storedAuth));
+        if (storedPosts) setPosts(JSON.parse(storedPosts));
+        if (storedStories) setStories(JSON.parse(storedStories));
+        if (storedReels) setReels(JSON.parse(storedReels));
+        if (storedSeenStories) setSeenStoryIds(new Set(JSON.parse(storedSeenStories)));
+        if (storedProfileImage) setUserProfileImage(storedProfileImage);
+        if (storedBalance) setCurrentBalance(JSON.parse(storedBalance));
+        if (storedTransactions) setTransactions(JSON.parse(storedTransactions));
+        if (storedNotifications) setNotifications(JSON.parse(storedNotifications));
+        if (storedGroupGifts) setGroupGifts(JSON.parse(storedGroupGifts));
+        if (storedUserProfile) setUserProfile(JSON.parse(storedUserProfile));
+        if (storedAccountData) setAccountData(JSON.parse(storedAccountData));
+        if (storedActivities) setActivities(JSON.parse(storedActivities));
+        if (storedFriends) setFriends(JSON.parse(storedFriends));
+        if (storedFriendRequests) setFriendRequests(JSON.parse(storedFriendRequests));
+        if (storedPrivacySettings) setPrivacySettings(JSON.parse(storedPrivacySettings));
+        if (storedBirthdays) setBirthdays(JSON.parse(storedBirthdays));
+      } catch (error) {
+        console.error("Failed to load data from storage:", error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  // Persist data to AsyncStorage
+  useEffect(() => {
+    if (!isLoaded) return;
+    const saveData = async () => {
+      try {
+        await AsyncStorage.setItem("isAuthenticated", JSON.stringify(isAuthenticated));
+        await AsyncStorage.setItem("posts", JSON.stringify(posts));
+        await AsyncStorage.setItem("stories", JSON.stringify(stories));
+        await AsyncStorage.setItem("reels", JSON.stringify(reels));
+        await AsyncStorage.setItem("seenStoryIds", JSON.stringify(Array.from(seenStoryIds)));
+        await AsyncStorage.setItem("userProfileImage", userProfileImage);
+        await AsyncStorage.setItem("currentBalance", JSON.stringify(currentBalance));
+        await AsyncStorage.setItem("transactions", JSON.stringify(transactions));
+        await AsyncStorage.setItem("notifications", JSON.stringify(notifications));
+        await AsyncStorage.setItem("groupGifts", JSON.stringify(groupGifts));
+        await AsyncStorage.setItem("userProfile", JSON.stringify(userProfile));
+        await AsyncStorage.setItem("accountData", JSON.stringify(accountData));
+        await AsyncStorage.setItem("activities", JSON.stringify(activities));
+        await AsyncStorage.setItem("friends", JSON.stringify(friends));
+        await AsyncStorage.setItem("friendRequests", JSON.stringify(friendRequests));
+        await AsyncStorage.setItem("privacySettings", JSON.stringify(privacySettings));
+        await AsyncStorage.setItem("birthdays", JSON.stringify(birthdays));
+      } catch (error) {
+        console.error("Failed to save data to storage:", error);
+      }
+    };
+
+    saveData();
+  }, [isAuthenticated, posts, stories, reels, seenStoryIds, userProfileImage, currentBalance, transactions, notifications, groupGifts, userProfile, accountData, activities, friends, friendRequests, privacySettings, birthdays, isLoaded]);
+
+  const handlePost = (
+    content: string, 
+    image?: string, 
+    video?: string, 
+    location?: string,
+    celebrationType?: 'birthday' | 'anniversary' | 'party' | 'general',
+    celebrantName?: string,
+    feeling?: string
+  ) => {
+    const newPost: Post = {
+      id: Date.now().toString(),
+      authorName: userProfile.name,
+      authorHandle: userProfile.username,
+      authorImage: userProfileImage,
+      content,
+      timestamp: "Just now",
+      likes: 0,
+      comments: 0,
+      reposts: 0,
+      views: 0,
+      image,
+      video,
+      location,
+      celebrationType,
+      celebrantName,
+      feeling,
+      isBookmarked: false,
+      isFollowed: false,
+      isEdited: false,
+      commentsList: []
+    };
+    
+    if (video) {
+      const newReel: ReelItem = {
+        id: Date.now().toString(),
+        user: userProfile.name,
+        handle: userProfile.username,
+        avatar: userProfileImage,
+        description: content,
+        music: "Original Audio",
+        likes: "0",
+        comments: "0",
+        videoUrl: video,
+        poster: image || "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800",
+        isBirthday: celebrationType === 'birthday'
+      };
+      setReels([newReel, ...reels]);
+      setActiveTab("video");
+    } else {
+      setActiveTab("home");
+    }
+    
+    setSearchQuery("");
+    setPosts([newPost, ...posts]);
+    Alert.alert("Success", "Your post has been shared!");
+  };
+
+  const handleEditPost = (
+    postId: string, 
+    newContent: string, 
+    newImage?: string, 
+    newVideo?: string, 
+    newLocation?: string,
+    celebrationType?: 'birthday' | 'anniversary' | 'party' | 'general',
+    celebrantName?: string,
+    feeling?: string
+  ) => {
+    setPosts(prevPosts => prevPosts.map(post => 
+      post.id === postId ? { 
+        ...post, 
+        content: newContent, 
+        image: newImage, 
+        video: newVideo, 
+        location: newLocation,
+        celebrationType,
+        celebrantName,
+        feeling,
+        isEdited: true 
+      } : post
+    ));
+  };
+
+  const handleRepost = (postId: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId) {
+        return { ...post, reposts: post.reposts + 1 };
+      }
+      return post;
+    }));
+  };
+
+  const handleToggleBookmark = (postId: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId) {
+        return { ...post, isBookmarked: !post.isBookmarked };
+      }
+      return post;
+    }));
+  };
+
+  const handleLikePost = (postId: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId) {
+        return { ...post, likes: post.likes + 1 };
+      }
+      return post;
+    }));
+  };
+
+  const handleEditComment = (postId: string, commentId: string, newContent: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId && post.commentsList) {
+        return {
+          ...post,
+          commentsList: post.commentsList.map(comment => 
+            comment.id === commentId ? { ...comment, content: newContent } : comment
+          )
+        };
+      }
+      return post;
+    }));
+  };
+
+  const handleAddComment = (postId: string, content: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId) {
+        const newComment = {
+          id: Date.now().toString(),
+          authorName: userProfile.name,
+          authorImage: userProfileImage,
+          content,
+          timestamp: "Just now",
+          isOwn: true
+        };
+        return {
+          ...post,
+          comments: (post.comments || 0) + 1,
+          commentsList: post.commentsList ? [...post.commentsList, newComment] : [newComment]
+        };
+      }
+      return post;
+    }));
+  };
+
+  const handleDeletePost = (postId: string) => {
+    setPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
+    Alert.alert("Deleted", "Post has been deleted");
+  };
+
+  const handleDeleteComment = (postId: string, commentId: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.id === postId && post.commentsList) {
+        return {
+          ...post,
+          comments: Math.max(0, (post.comments || 0) - 1),
+          commentsList: post.commentsList.filter(c => c.id !== commentId)
+        };
+      }
+      return post;
+    }));
+  };
+
+  const handleToggleFollow = (authorHandle: string) => {
+    setPosts(prevPosts => prevPosts.map(post => {
+      if (post.authorHandle === authorHandle) {
+        return { ...post, isFollowed: !post.isFollowed };
+      }
+      return post;
+    }));
+  };
+
+  const handleAddStory = (imageUrl: string, contentUrl: string, isVideo?: boolean) => {
+    const newStory: Story = {
+      id: Date.now().toString(),
+      userName: userProfile.name,
+      imageUrl: userProfileImage,
+      contentUrl,
+      isVideo,
+      timestamp: "Just now",
+      isUser: true
+    };
+    setStories([newStory, ...stories]);
+  };
+
+  const handleSeenStory = (storyId: string) => {
+    setSeenStoryIds(prev => new Set(prev).add(storyId));
+  };
+
+  const handleLogin = (userData: { name: string; email: string; birthday: string }) => {
+    setUserProfile(prev => ({
+      ...prev,
+      name: userData.name,
+      username: `@${userData.name.toLowerCase().replace(/\s+/g, '_')}`,
+      birthday: userData.birthday,
+    }));
+    setAccountData(prev => ({
+      ...prev,
+      email: userData.email,
+    }));
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+  };
+
+  const handleWish = (celebrantName: string) => {
+    const newActivity: ActivityItem = {
+      id: Date.now().toString(),
+      text: `Sent a birthday wish to ${celebrantName}`,
+      time: "Just now",
+      type: "social",
+      iconName: "Heart",
+      color: "#ec4899",
+      bg: "#fdf2f8"
+    };
+    setActivities([newActivity, ...activities]);
+    
+    const newNotif: Notification = {
+      id: Date.now().toString(),
+      type: 'wish',
+      user: celebrantName,
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
+      message: `sent a birthday wish to ${celebrantName}! 🎂`,
+      time: "Just now",
+      isRead: false
+    };
+    setNotifications([newNotif, ...notifications]);
+    
+    Alert.alert("Wish Sent", `Your birthday wish to ${celebrantName} has been sent!`);
+  };
+
+  const handleGiftPurchase = (giftName: string, price: number, celebrantName: string) => {
+    const newActivity: ActivityItem = {
+      id: Date.now().toString(),
+      text: `Sent ${giftName} to ${celebrantName}`,
+      time: "Just now",
+      type: "gift",
+      iconName: "Package",
+      color: "#f59e0b",
+      bg: "#fef3c7"
+    };
+    setActivities([newActivity, ...activities]);
+    
+    const newTransaction: Transaction = {
+      id: Date.now().toString(),
+      type: "gift_sent",
+      amount: price,
+      date: "Just now",
+      senderName: celebrantName,
+      status: "completed"
+    };
+    setTransactions([newTransaction, ...transactions]);
+
+    const newNotif: Notification = {
+      id: Date.now().toString(),
+      type: 'gift',
+      user: celebrantName,
+      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
+      message: `received your ${giftName} and is so happy! 🎁`,
+      time: "Just now",
+      isRead: false
+    };
+    setNotifications([newNotif, ...notifications]);
+    
+    Alert.alert("Gift Sent", `Your ${giftName} has been sent to ${celebrantName}!`);
+  };
+
+  const navigateTo = (screen: string, id?: string, mode?: 'post' | 'video', url?: string, title?: string) => {
+    console.log("navigateTo called:", screen, id);
+    
+    if (screen === "video" && id) {
+      setSelectedVideoId(id);
+      setView("video_player");
+      return;
+    }
+    
+    const mainTabs = ["home", "calendar", "video", "gift_shop", "friends", "profile"];
+    if (mainTabs.includes(screen)) {
+      handleTabChange(screen);
+      return;
+    }
+
+    if (screen === "post_detail" && id) {
+      setSelectedPostId(id);
+    }
+    if (screen === "post") {
+      setPostMode(mode || 'post');
+    }
+    if (screen === "webview" && url) {
+      setWebViewUrl(url);
+      setWebViewTitle(title || null);
+    }
+    setView(screen);
+  };
+
+  const handleTabChange = (tab: string) => {
+    setView(null);
+    setSelectedPostId(null);
+    setSelectedVideoId(null);
+    setWebViewUrl(null);
+    setActiveTab(tab);
+  };
+
+  const renderScreen = () => {
+    if (!isLoaded) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={theme.primary} />
+        </View>
+      );
+    }
+
+    if (view === "webview" && webViewUrl) {
+      return <WebViewScreen url={webViewUrl} title={webViewTitle || undefined} onBack={() => setView(null)} />;
+    }
+    if (view === "privacy_policy") return <PrivacyPolicyScreen onBack={() => setView(null)} />;
+    if (view === "terms") return <TermsAndConditionsScreen onBack={() => setView(null)} />;
+    if (view === "gift_shop") return <GiftShopScreen onBack={() => setView(null)} onNavigate={navigateTo} searchQuery={searchQuery} onBuyGift={handleGiftPurchase} />;
+    if (view === "wallet") return <WalletScreen balance={currentBalance} transactions={transactions} setBalance={setCurrentBalance} setTransactions={setTransactions} onBack={() => setView(null)} />;
+    if (view === "notifications") return <NotificationScreen notifications={notifications} setNotifications={setNotifications} onBack={() => setView(null)} />;
+    if (view === "group_gifts") return <GroupGiftScreen pools={groupGifts} setPools={setGroupGifts} onBack={() => setView(null)} />;
+    if (view === "post") return <PostScreen userProfileImage={userProfileImage} initialMode={postMode} onPost={handlePost} onBack={() => setView(null)} />;
+    if (view === "video") return <VideoScreen reels={reels} userProfileImage={userProfileImage} onBack={() => setView(null)} onNavigate={navigateTo} />;
+    if (view === "privacy_settings") {
+      return <PrivacySettingsScreen 
+        onBack={() => setView(null)} 
+        settings={privacySettings} 
+        onUpdateSettings={setPrivacySettings} 
+      />;
+    }
+    if (view === "birthday_calendar") {
+      return <BirthdayCalendarScreen 
+        onBack={() => setView(null)} 
+        birthdays={birthdays} 
+        onToggleReminder={handleToggleBirthdayReminder}
+        onWish={handleSendWish}
+      />;
+    }
+    if (view === "search_users") {
+      return <SearchUsersScreen 
+        onBack={() => setView(null)} 
+        onAddFriend={handleSendFriendRequest}
+        existingFriends={friends.map(f => f.userId)}
+        pendingRequests={friendRequests.map(r => r.fromUserId)}
+        currentUserId={currentUserId}
+      />;
+    }
+    
+    if (view === "video_player" && selectedVideoId) {
+      let video = reels.find(r => r.id === selectedVideoId);
+      if (!video) {
+        const post = posts.find(p => p.id === selectedVideoId);
+        if (post && post.video) {
+          video = {
+            id: post.id,
+            user: post.authorName,
+            handle: post.authorHandle,
+            avatar: post.authorImage,
+            description: post.content,
+            music: "Original Audio",
+            likes: String(post.likes),
+            comments: String(post.comments),
+            videoUrl: post.video,
+            poster: post.image || "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800",
+            isBirthday: post.celebrationType === 'birthday'
+          };
+        }
+      }
+      if (video) {
+        return <VideoScreen reels={[video]} userProfileImage={userProfileImage} onBack={() => { setView(null); setSelectedVideoId(null); }} onNavigate={navigateTo} />;
+      } else {
+        setView(null);
+        setSelectedVideoId(null);
+      }
+    }
+    
+    const homeProps = {
+      onNavigate: navigateTo,
+      posts,
+      stories,
+      seenStoryIds,
+      userProfileImage,
+      onSeenStory: handleSeenStory,
+      onAddStory: handleAddStory,
+      onEditPost: handleEditPost,
+      onLikePost: handleLikePost,
+      onEditComment: handleEditComment,
+      onAddComment: handleAddComment,
+      onDeletePost: handleDeletePost,
+      onDeleteComment: handleDeleteComment,
+      onToggleFollow: handleToggleFollow,
+      onRepost: handleRepost,
+      onToggleBookmark: handleToggleBookmark,
+      onWish: handleWish
+    };
+
+    const filteredPosts = posts.filter(post => 
+      post.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.authorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.authorHandle.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (!isAuthenticated) {
+      return <AuthScreen onLogin={handleLogin} />;
+    }
+
+    if (view === "post_detail" && selectedPostId) {
+      const post = posts.find(p => p.id === selectedPostId);
+      if (post) {
+        return <PostDetailScreen post={post} onBack={() => setView(null)} currentUserId={currentUserId} {...homeProps} />;
+      }
+    }
+
+    switch (activeTab) {
+      case "home":
+        return <HomeScreen {...homeProps} posts={filteredPosts} />;
+      case "calendar":
+        return <CalendarScreen 
+          searchQuery={searchQuery} 
+          onWishClick={handleWish} 
+          onGiftClick={() => navigateTo('gift_shop')} 
+          friendsBirthdays={birthdays} 
+          onToggleReminder={handleToggleBirthdayReminder} 
+          onNavigate={navigateTo} 
+        />;
+      case "gift_shop":
+        return <GiftShopScreen onBack={() => handleTabChange("home")} onNavigate={navigateTo} searchQuery={searchQuery} onBuyGift={handleGiftPurchase} />;
+      case "video":
+        return <VideoScreen reels={reels} userProfileImage={userProfileImage} onBack={() => setActiveTab("home")} onNavigate={navigateTo} />;
+      case "friends":
+        return <FriendsScreen 
+          onBack={() => handleTabChange("home")} 
+          onNavigate={navigateTo}
+          friends={friends} 
+          friendRequests={friendRequests}
+          onAcceptRequest={handleAcceptRequest}
+          onRejectRequest={handleRejectRequest}
+          onRemoveFriend={handleRemoveFriend}
+          onSendFriendRequest={handleSendFriendRequest}
+          onBlockUser={handleBlockUser}
+          currentUserId={currentUserId}
+        />;
+      case "profile":
+        return <ProfileScreen searchQuery={searchQuery} userProfileImage={userProfileImage} onUpdateProfileImage={setUserProfileImage} onNavigate={navigateTo} profile={userProfile} setProfile={setUserProfile} accountData={accountData} setAccountData={setAccountData} activities={activities} setActivities={setActivities} onLogout={handleLogout} />;
+      default:
+        return <HomeScreen {...homeProps} posts={filteredPosts} />;
+    }
+  };
+
+  return (
+    <SafeAreaProvider>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: theme.bg }]}>
+        <StatusBar style={darkMode ? "light" : "dark"} />
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} style={{ flex: 1 }}>
+          <View style={[styles.container, { backgroundColor: theme.bg, borderColor: theme.border, maxWidth: isLargeScreen ? 1200 : (isTablet ? 800 : '100%'), borderLeftWidth: (isLargeScreen || isTablet) ? 1 : 0, borderRightWidth: (isLargeScreen || isTablet) ? 1 : 0 }]}>
+            {!view && activeTab !== "video" && <Header onNavigate={navigateTo} searchQuery={searchQuery} onSearchChange={setSearchQuery} userProfileImage={userProfileImage} />}
+            <View style={styles.screenContent}>{renderScreen()}</View>
+            <BottomNav activeTab={activeTab as any} setActiveTab={handleTabChange as any} />
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </SafeAreaProvider>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <ErrorBoundary>
+        <MainApp />
+      </ErrorBoundary>
+    </ThemeProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: '#fff', alignSelf: 'center', width: '100%', overflow: 'hidden', borderColor: '#f1f5f9' },
+  screenContent: { flex: 1 },
+});
