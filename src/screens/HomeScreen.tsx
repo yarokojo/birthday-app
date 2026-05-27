@@ -152,7 +152,6 @@ export default function HomeScreen({
                         from={{ opacity: 0.6 }}
                         animate={{ opacity: 1 }}
                         transition={{ loop: true, duration: 1500, type: 'timing' }}
-                        style={[styles.liveBadge, { backgroundColor: darkMode ? theme.itemBg : '#fef3c7' }]}
                       >
                         <Text style={[styles.liveText, { color: darkMode ? theme.accent : '#d97706' }]}>LIVE</Text>
                       </MotiView>

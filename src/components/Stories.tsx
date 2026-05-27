@@ -183,7 +183,6 @@ export default function Stories({ stories, seenStoryIds, onSeenStory, onAddStory
                       from={{ opacity: 0.6, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ loop: true, duration: 1000, type: 'timing' }}
-                      style={styles.liveBadge}
                     >
                       <Text style={styles.liveText}>LIVE</Text>
                     </MotiView>
