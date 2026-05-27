@@ -8,17 +8,15 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      - name: Setup Java
+      - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
@@ -27,19 +25,48 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
-      - name: Force Gradle 8.5
+      - name: Prebuild Android (generates wrapper)
+        run: npx expo prebuild --platform android --clean
+
+      - name: Force Gradle 8.5 and fix build.gradle
         run: |
+          # Overwrite wrapper properties
           mkdir -p android/gradle/wrapper
-          cat > android/gradle/wrapper/gradle-wrapper.properties << 'GRADLE'
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'WRAPPER'
           distributionBase=GRADLE_USER_HOME
           distributionPath=wrapper/dists
           distributionUrl=https\://services.gradle.org/distributions/gradle-8.5-all.zip
           zipStoreBase=GRADLE_USER_HOME
           zipStorePath=wrapper/dists
-          GRADLE
+          WRAPPER
 
-      - name: Prebuild Android
-        run: npx expo prebuild --platform android --clean
+          # Fix android/build.gradle to use compatible versions
+          cat > android/build.gradle << 'BUILD'
+          buildscript {
+              ext {
+                  buildToolsVersion = "34.0.0"
+                  minSdkVersion = 23
+                  compileSdkVersion = 34
+                  targetSdkVersion = 34
+                  ndkVersion = "25.1.8937393"
+                  kotlinVersion = "1.8.0"
+              }
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:7.4.2'
+                  classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+              }
+          }
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          BUILD
 
       - name: Build APK
         run: |
