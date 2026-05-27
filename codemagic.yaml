@@ -3,7 +3,7 @@ workflows:
     name: Build Android APK
     instance_type: mac_mini_m2
     environment:
-      node: 18
+      node: 20              # <-- Change from 18 to 20
       java: 17
     scripts:
       - name: Install dependencies
