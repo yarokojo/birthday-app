@@ -1,0 +1,83 @@
+// Update the handlePost function in App.tsx - find this function and replace with:
+
+const handlePost = (
+  content: string, 
+  image?: string, 
+  video?: string, 
+  location?: string,
+  celebrationType?: 'birthday' | 'anniversary' | 'party' | 'general',
+  celebrantName?: string,
+  feeling?: string
+) => {
+  const newPost: Post = {
+    id: Date.now().toString(),
+    authorId: currentUserId,  // Add this line
+    authorName: userProfile.name,
+    authorHandle: userProfile.username,
+    authorImage: userProfileImage,
+    content,
+    timestamp: "Just now",
+    likes: 0,
+    comments: 0,
+    reposts: 0,
+    views: 0,
+    image,
+    video,
+    location,
+    celebrationType,
+    celebrantName,
+    feeling,
+    isBookmarked: false,
+    isFollowed: false,
+    isEdited: false,
+    commentsList: []
+  };
+  
+  if (video) {
+    const newReel: ReelItem = {
+      id: Date.now().toString(),
+      user: userProfile.name,
+      handle: userProfile.username,
+      avatar: userProfileImage,
+      description: content,
+      music: "Original Audio",
+      likes: "0",
+      comments: "0",
+      videoUrl: video,
+      poster: image || "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800",
+      isBirthday: celebrationType === 'birthday'
+    };
+    setReels([newReel, ...reels]);
+    setActiveTab("video");
+  } else {
+    setActiveTab("home");
+  }
+  
+  setSearchQuery("");
+  setPosts([newPost, ...posts]);
+  Alert.alert("Success", "Your post has been shared!");
+};
+
+// Update the handleAddComment function in App.tsx:
+
+const handleAddComment = (postId: string, content: string) => {
+  setPosts(prevPosts => prevPosts.map(post => {
+    if (post.id === postId) {
+      const newComment = {
+        id: Date.now().toString(),
+        authorId: currentUserId,  // Add this line
+        authorName: userProfile.name,
+        authorImage: userProfileImage,
+        content,
+        timestamp: "Just now",
+        isOwn: true
+      };
+      return {
+        ...post,
+        comments: (post.comments || 0) + 1,
+        commentsList: post.commentsList ? [...post.commentsList, newComment] : [newComment]
+      };
+    }
+    return post;
+  }));
+};

@@ -1,0 +1,250 @@
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, SafeAreaView, Platform, ActivityIndicator } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ThemeProvider, useTheme } from './src/context/ThemeContext';
+import { supabase } from './lib/supabase';
+
+// Import all screens
+import HomeScreen from './src/screens/HomeScreen';
+import CalendarScreen from './src/screens/CalendarScreen';
+import VideoScreen from './src/screens/VideoScreen';
+import GiftShopScreen from './src/screens/GiftShopScreen';
+import FriendsScreen from './src/screens/FriendsScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+import AuthScreen from './src/screens/AuthScreen';
+import BottomNav from './src/components/BottomNav';
+
+// Mock data for stories and other components
+import { Story, Celebrant } from './src/types';
+
+function MainApp() {
+  const { theme, darkMode } = useTheme();
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [activeTab, setActiveTab] = useState('home');
+  const [posts, setPosts] = useState([]);
+  const [stories, setStories] = useState<Story[]>([]);
+  const [seenStoryIds, setSeenStoryIds] = useState<Set<string>>(new Set());
+  const [user, setUser] = useState(null);
+  const [userProfileImage, setUserProfileImage] = useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop');
+
+  useEffect(() => {
+    checkUser();
+    loadStories();
+  }, []);
+
+  async function checkUser() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+      if (session?.user) {
+        setUser(session.user);
+        await loadPosts();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadPosts() {
+    const { data } = await supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    setPosts(data || []);
+  }
+
+  async function loadStories() {
+    // Mock stories for now - you can replace with real data later
+    setStories([]);
+  }
+
+  const handleLogin = async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      setIsAuthenticated(true);
+      await checkUser();
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setIsAuthenticated(false);
+    setUser(null);
+    setPosts([]);
+  };
+
+  // Placeholder functions for HomeScreen props
+  const handleSeenStory = (id: string) => {
+    setSeenStoryIds(prev => new Set([...prev, id]));
+  };
+
+  const handleAddStory = (imageUrl: string, contentUrl: string, isVideo?: boolean) => {
+    console.log('Add story:', imageUrl, contentUrl, isVideo);
+  };
+
+  const handleEditPost = (id: string, content: string) => {
+    console.log('Edit post:', id, content);
+  };
+
+  const handleLikePost = (id: string) => {
+    console.log('Like post:', id);
+  };
+
+  const handleEditComment = (postId: string, commentId: string, content: string) => {
+    console.log('Edit comment:', postId, commentId, content);
+  };
+
+  const handleAddComment = (postId: string, content: string) => {
+    console.log('Add comment:', postId, content);
+  };
+
+  const handleDeletePost = (postId: string) => {
+    console.log('Delete post:', postId);
+  };
+
+  const handleDeleteComment = (postId: string, commentId: string) => {
+    console.log('Delete comment:', postId, commentId);
+  };
+
+  const handleToggleFollow = (authorHandle: string) => {
+    console.log('Toggle follow:', authorHandle);
+  };
+
+  const handleRepost = (postId: string) => {
+    console.log('Repost:', postId);
+  };
+
+  const handleToggleBookmark = (postId: string) => {
+    console.log('Toggle bookmark:', postId);
+  };
+
+  const handleWish = (celebrantName: string) => {
+    console.log('Wish:', celebrantName);
+  };
+
+const navigateTo = (screen: string, id?: string, mode?: 'post' | 'video', url?: string, title?: string) => {
+  console.log("navigateTo called:", screen, id);
+  
+  if (screen === "video" && id) {
+    setSelectedVideoId(id);
+    setView("video_player");
+    return;
+  }
+  
+  const mainTabs = ["home", "calendar", "video", "gift_shop", "friends", "profile"];
+  if (mainTabs.includes(screen)) {
+    handleTabChange(screen);
+    return;
+  }
+
+  if (screen === "post_detail" && id) {
+    setSelectedPostId(id);
+  }
+  if (screen === "post") {
+    setPostMode(mode || 'post');
+  }
+  if (screen === "webview" && url) {
+    setWebViewUrl(url);
+    setWebViewTitle(title || null);
+  }
+  setView(screen);
+};
+    const tabs = ['home', 'calendar', 'video', 'gift_shop', 'friends', 'profile'];
+    if (tabs.includes(screen)) {
+      setActiveTab(screen);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.bg }}>
+        <ActivityIndicator size="large" color={theme.primary} />
+      </View>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <AuthScreen onLogin={handleLogin} onSignUp={handleLogin} />;
+  }
+
+  const renderScreen = () => {
+    switch (activeTab) {
+      case 'home':
+        return (
+          <HomeScreen
+            onNavigate={navigateTo}
+            posts={posts}
+            stories={stories}
+            seenStoryIds={seenStoryIds}
+            onSeenStory={handleSeenStory}
+            onAddStory={handleAddStory}
+            onEditPost={handleEditPost}
+            onLikePost={handleLikePost}
+            onEditComment={handleEditComment}
+            onAddComment={handleAddComment}
+            onDeletePost={handleDeletePost}
+            onDeleteComment={handleDeleteComment}
+            onToggleFollow={handleToggleFollow}
+            onRepost={handleRepost}
+            onToggleBookmark={handleToggleBookmark}
+            onWish={handleWish}
+            userProfileImage={userProfileImage}
+          />
+        );
+      case 'calendar':
+        return <CalendarScreen onNavigate={navigateTo} />;
+      case 'video':
+        return <VideoScreen onNavigate={navigateTo} />;
+      case 'gift_shop':
+        return <GiftShopScreen onNavigate={navigateTo} />;
+      case 'friends':
+        return <FriendsScreen onNavigate={navigateTo} />;
+      case 'profile':
+        return <ProfileScreen onNavigate={navigateTo} onLogout={handleLogout} userProfileImage={userProfileImage} />;
+      default:
+        return (
+          <HomeScreen
+            onNavigate={navigateTo}
+            posts={posts}
+            stories={stories}
+            seenStoryIds={seenStoryIds}
+            onSeenStory={handleSeenStory}
+            onAddStory={handleAddStory}
+            onEditPost={handleEditPost}
+            onLikePost={handleLikePost}
+            onEditComment={handleEditComment}
+            onAddComment={handleAddComment}
+            onDeletePost={handleDeletePost}
+            onDeleteComment={handleDeleteComment}
+            onToggleFollow={handleToggleFollow}
+            onRepost={handleRepost}
+            onToggleBookmark={handleToggleBookmark}
+            onWish={handleWish}
+            userProfileImage={userProfileImage}
+          />
+        );
+    }
+  };
+
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: theme.bg }}>
+      <StatusBar style={darkMode ? 'light' : 'dark'} />
+      <View style={{ flex: 1 }}>
+        {renderScreen()}
+      </View>
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+    </SafeAreaView>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <MainApp />
+    </ThemeProvider>
+  );
+}

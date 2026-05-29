@@ -1,0 +1,21 @@
+Replace the video section in handlePost with:
+
+if (video) {
+  const newReel: ReelItem = {
+    id: Date.now().toString(),
+    user: userProfile.name,
+    handle: userProfile.username,
+    avatar: userProfileImage,
+    description: content,
+    music: "Original Audio",
+    likes: "0",
+    comments: "0",
+    videoUrl: video,
+    poster: image || "https://images.unsplash.com/photo-1464347744102-11db6282f854?w=800",
+    isBirthday: celebrationType === 'birthday'
+  };
+  setReels(prevReels => [newReel, ...prevReels]);
+  setActiveTab("video");
+} else {
+  setActiveTab("home");
+}

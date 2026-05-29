@@ -1,0 +1,9 @@
+In App.tsx, find where HomeScreen is rendered and make sure it's getting the posts prop.
+It should look like:
+
+<HomeScreen 
+  posts={posts}
+  onNavigate={navigateTo}
+  onWish={handleWish}
+  userProfileImage={userProfileImage}
+/>

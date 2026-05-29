@@ -1,0 +1,43 @@
+In the video_player section, replace the video finding logic with:
+
+if (!video) {
+  // Also check posts directly
+  const post = posts.find(p => p.id === selectedVideoId);
+  if (post && post.video) {
+    video = {
+      id: post.id,
+      user: post.authorName,
+      handle: post.authorHandle,
+      avatar: post.authorImage,
+      description: post.content || "Video",
+      music: "Original Audio",
+      likes: String(post.likes),
+      comments: String(post.comments),
+      videoUrl: post.video,
+      poster: post.image || "",
+      isBirthday: post.celebrationType === 'birthday'
+    };
+  } else {
+    // Last resort - try to find any video with this ID in the database
+    const { data } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('id', selectedVideoId)
+      .single();
+    if (data && data.video_url) {
+      video = {
+        id: data.id,
+        user: userProfile.name,
+        handle: userProfile.username,
+        avatar: userProfileImage,
+        description: data.content || "Video",
+        music: "Original Audio",
+        likes: String(data.likes_count || 0),
+        comments: String(data.comments_count || 0),
+        videoUrl: data.video_url,
+        poster: data.image_url || "",
+        isBirthday: data.celebration_type === 'birthday'
+      };
+    }
+  }
+}

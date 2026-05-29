@@ -1,0 +1,7 @@
+In PostScreen.tsx, when a video is selected, you need to:
+
+1. Upload the video to Supabase Storage first
+2. Get the permanent public URL
+3. Save that URL to the database
+
+Current issue: blob URLs are temporary and only work in the current browser session.

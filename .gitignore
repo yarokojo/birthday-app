@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+.eas/
+android/
+ios/
+*.log
+.DS_Store
+.env
+*.backup
+*.sh
+android-sdk/
+.gradle/
+archive-inspection/
+storage/

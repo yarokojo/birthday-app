@@ -1,0 +1,17 @@
+In PostScreen.tsx, add console logs in handleShare:
+
+const handleShare = async () => {
+  console.log("1. Share clicked");
+  console.log("2. Content:", content);
+  console.log("3. Selected video:", selectedVideo);
+  
+  if (!content.trim() && !selectedImage && !selectedVideo) {
+    console.log("4. Nothing to share");
+    return;
+  }
+  
+  setIsUploading(true);
+  console.log("5. Uploading started");
+  
+  // ... rest of code
+};

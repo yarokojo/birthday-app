@@ -1,0 +1,24 @@
+In AuthScreen.tsx, replace the interface:
+
+interface AuthScreenProps {
+  onLogin: (userData: { name: string; email: string; birthday: string }) => void;
+}
+
+WITH:
+
+interface AuthScreenProps {
+  onLogin: (email: string, password: string) => void;
+  onSignUp: (email: string, password: string, name: string, birthday: string) => void;
+}
+
+Then inside handleSubmit, differentiate between login and signup:
+
+const handleSubmit = () => {
+  setLoading(true);
+  if (mode === 'login') {
+    onLogin(email, password);
+  } else {
+    onSignUp(email, password, name, birthday);
+  }
+  setLoading(false);
+};

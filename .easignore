@@ -1,0 +1,86 @@
+# Dependencies (excluded by default, but being explicit)
+node_modules/
+
+# Build outputs
+android/
+ios/
+build/
+dist/
+.out/
+
+# Local development files
+.env
+.env.local
+.env.*.local
+*.log
+*.tmp
+*.temp
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage/
+.nyc_output/
+*.test.js
+*.test.ts
+*.test.tsx
+__tests__/
+__mocks__/
+
+# Git
+.git/
+.gitignore
+.gitattributes
+.gitmodules
+
+# EAS/Eslint/Prettier
+.eslintrc*
+.prettierrc*
+eas.json
+*.md
+docs/
+
+# Assets that might be large (optional - remove if you need these)
+*.psd
+*.ai
+*.sketch
+assets/raw/
+
+# Temporary files from previous builds
+.expo/
+.expo-shared/
+.cache/
+.parcel-cache/
+*.tsbuildinfo
+
+# Native projects (these will be regenerated)
+android/.gradle/
+android/app/build/
+ios/Pods/
+ios/build/
+
+# Large media files (if any)
+*.mp4
+*.mov
+*.zip
+*.tar.gz
+*.dmg
+
+# Keep only necessary source files
+!src/
+!App.tsx
+!app.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!babel.config.js
+!metro.config.js
+!assets/icon.png
+!assets/splash.png
+!assets/adaptive-icon.png

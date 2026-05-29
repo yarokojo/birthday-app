@@ -1,0 +1,34 @@
+Add this function after loadPostsFromSupabase:
+
+const loadReelsFromSupabase = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('posts')
+      .select('id, content, video_url, image_url')
+      .not('video_url', 'is', null)
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    if (data) {
+      const videoReels = data.map(post => ({
+        id: post.id,
+        user: userProfile.name,
+        handle: userProfile.username,
+        avatar: userProfileImage,
+        description: post.content || "",
+        music: "Original Audio",
+        likes: "0",
+        comments: "0",
+        videoUrl: post.video_url,
+        poster: post.image_url || "",
+        isBirthday: false
+      }));
+      setReels(videoReels);
+    }
+  } catch (error) {
+    console.error("Error loading reels:", error);
+  }
+};
+
+Then call it in the init useEffect after loadPostsFromSupabase.

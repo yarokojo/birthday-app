@@ -1,0 +1,29 @@
+Replace your current navigateTo function with this:
+
+const navigateTo = (screen: string, id?: string, mode?: 'post' | 'video', url?: string, title?: string) => {
+  console.log("navigateTo called:", screen, id);
+  
+  if (screen === "video" && id) {
+    setSelectedVideoId(id);
+    setView("video_player");
+    return;
+  }
+  
+  const mainTabs = ["home", "calendar", "video", "gift_shop", "friends", "profile"];
+  if (mainTabs.includes(screen)) {
+    handleTabChange(screen);
+    return;
+  }
+
+  if (screen === "post_detail" && id) {
+    setSelectedPostId(id);
+  }
+  if (screen === "post") {
+    setPostMode(mode || 'post');
+  }
+  if (screen === "webview" && url) {
+    setWebViewUrl(url);
+    setWebViewTitle(title || null);
+  }
+  setView(screen);
+};

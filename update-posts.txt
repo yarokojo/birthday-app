@@ -1,0 +1,48 @@
+Add this import at the top with other imports:
+import { supabase } from './lib/supabase';
+
+Add this function inside MainApp (after the state declarations):
+
+const loadPostsFromSupabase = async () => {
+  try {
+    setLoadingPosts(true);
+    const { data, error } = await supabase
+      .from('posts')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (error) throw error;
+    
+    if (data) {
+      const formattedPosts: Post[] = data.map(post => ({
+        id: post.id,
+        authorName: post.user_id === currentUserId ? userProfile.name : 'User',
+        authorHandle: '@user',
+        authorImage: userProfileImage,
+        content: post.content,
+        timestamp: new Date(post.created_at).toLocaleString(),
+        likes: post.likes_count || 0,
+        comments: post.comments_count || 0,
+        reposts: post.reposts_count || 0,
+        views: post.views_count || 0,
+        image: post.image_url,
+        video: post.video_url,
+        location: post.location,
+        celebrationType: post.celebration_type,
+        celebrantName: post.celebrant_name,
+        feeling: post.feeling,
+        isBookmarked: false,
+        isFollowed: false,
+        isEdited: post.is_edited,
+        commentsList: []
+      }));
+      setPosts(formattedPosts);
+    }
+  } catch (error) {
+    console.error('Error loading posts from Supabase:', error);
+  } finally {
+    setLoadingPosts(false);
+  }
+};
+
+Then replace the existing useEffect that loads from AsyncStorage, or add this to load posts on app start.
