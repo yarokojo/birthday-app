@@ -8,11 +8,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
       
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
       
@@ -25,9 +23,17 @@ jobs:
       - name: Install dependencies
         run: npm install --legacy-peer-deps
       
+      - name: Fix Reanimated for Android
+        run: |
+          # Patch reanimated for compatibility
+          sed -i 's/compileSdkVersion = 33/compileSdkVersion = 34/g' node_modules/react-native-reanimated/android/build.gradle
+          sed -i 's/targetSdkVersion = 33/targetSdkVersion = 34/g' node_modules/react-native-reanimated/android/build.gradle
+          # Fix System.loadLibrary error
+          sed -i 's/System.loadLibrary("reanimated");/\/\/ System.loadLibrary("reanimated");/g' node_modules/react-native-reanimated/android/src/main/java/com/swmansion/reanimated/ReanimatedPackage.java
+      
       - name: Create valid assets
         run: |
-          # Create valid 1x1 pixel PNGs
+          mkdir -p assets
           echo -n 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==' | base64 -d > assets/icon.png
           cp assets/icon.png assets/splash.png
           cp assets/icon.png assets/adaptive-icon.png
